@@ -1,0 +1,69 @@
+From bc31889bf90e14776e4404cd58e9b0244efc4f2e Mon Sep 17 00:00:00 2001
+From: Kalev Lember <klember@redhat.com>
+Date: Tue, 9 Jun 2020 21:42:41 +0200
+Subject: [PATCH] Improve the heuristic for detecting old-style AppStream
+ override files
+
+The heuristic was trying to detect old-style AppStream override files
+that have the following structure:
+
+      <component type=desktop>
+        <id>org.kde.amarok.desktop</id>
+        <categories>
+          <category>AudioVideo</category>
+          <category>Featured</category>
+        </categories>
+      </component>
+
+When it found one, it gave it the wildcard quirk to avoid leaking the
+result to the installed apps list.
+
+This however incorrectly tripped on old appdata files that didn't
+specify name and relied on filling the missing name/summary/icon from
+the desktop file.
+
+Fix this by tightening the heuristic and also look for
+<metadata_license> that none of the override files should have.
+
+This fixes RHEL firefox package to correctly show up when clicking on
+'Show Details' in GNOME Shell.
+---
+ plugins/core/gs-appstream.c | 14 ++++++++------
+ 1 file changed, 8 insertions(+), 6 deletions(-)
+
+diff --git a/plugins/core/gs-appstream.c b/plugins/core/gs-appstream.c
+index a387f2e0..da9ba970 100644
+--- a/plugins/core/gs-appstream.c
++++ b/plugins/core/gs-appstream.c
+@@ -746,6 +746,13 @@ gs_appstream_refine_app (GsPlugin *plugin,
+ 			gs_app_remove_quirk (app, GS_APP_QUIRK_HIDE_EVERYWHERE);
+ 	}
+ 
++	/* try to detect old-style AppStream 'override'
++	 * files without the merge attribute */
++	if (xb_node_query_text (component, "name", NULL) == NULL &&
++	    xb_node_query_text (component, "metadata_license", NULL) == NULL) {
++		gs_app_add_quirk (app, GS_APP_QUIRK_IS_WILDCARD);
++	}
++
+ 	/* set id */
+ 	tmp = xb_node_query_text (component, "id", NULL);
+ 	if (tmp != NULL && gs_app_get_id (app) == NULL)
+@@ -770,13 +777,8 @@ gs_appstream_refine_app (GsPlugin *plugin,
+ 
+ 	/* set name */
+ 	tmp = xb_node_query_text (component, "name", NULL);
+-	if (tmp != NULL) {
++	if (tmp != NULL)
+ 		gs_app_set_name (app, GS_APP_QUALITY_HIGHEST, tmp);
+-	} else {
+-		/* this is a heuristic, but works even with old-style AppStream
+-		 * files without the merge attribute */
+-		gs_app_add_quirk (app, GS_APP_QUIRK_IS_WILDCARD);
+-	}
+ 
+ 	/* set summary */
+ 	tmp = xb_node_query_text (component, "summary", NULL);
+-- 
+2.26.2
+

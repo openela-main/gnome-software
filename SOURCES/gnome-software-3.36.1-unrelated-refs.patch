@@ -1,0 +1,26 @@
+diff -up gnome-software-3.36.1/plugins/flatpak/gs-plugin-flatpak.c.unrelated-refs gnome-software-3.36.1/plugins/flatpak/gs-plugin-flatpak.c
+--- gnome-software-3.36.1/plugins/flatpak/gs-plugin-flatpak.c.unrelated-refs	2020-10-09 14:07:16.407235531 -0400
++++ gnome-software-3.36.1/plugins/flatpak/gs-plugin-flatpak.c	2020-10-09 14:08:48.775544689 -0400
+@@ -696,6 +696,11 @@ gs_plugin_app_remove (GsPlugin *plugin,
+ 		gs_flatpak_error_convert (error);
+ 		return FALSE;
+ 	}
++
++	/* add to the transaction cache for quick look up -- other unrelated
++	 * refs will be matched using gs_plugin_flatpak_find_app_by_ref() */
++	gs_flatpak_transaction_add_app (transaction, app);
++
+ 	ref = gs_flatpak_app_get_ref_display (app);
+ 	if (!flatpak_transaction_add_uninstall (transaction, ref, error)) {
+ 		gs_flatpak_error_convert (error);
+@@ -899,6 +904,10 @@ gs_plugin_flatpak_update (GsPlugin *plug
+ 			gs_flatpak_error_convert (error);
+ 			return FALSE;
+ 		}
++
++		/* add to the transaction cache for quick look up -- other unrelated
++		 * refs will be matched using gs_plugin_flatpak_find_app_by_ref() */
++		gs_flatpak_transaction_add_app (transaction, app);
+ 	}
+ 
+ 	/* run transaction */
