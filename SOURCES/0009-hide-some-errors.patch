@@ -1,0 +1,70 @@
+From 19c19d37ec9ba8b15b806158572a8e4a34c55677 Mon Sep 17 00:00:00 2001
+From: Milan Crha <mcrha@redhat.com>
+Date: Wed, 7 Sep 2022 09:01:16 +0200
+Subject: [PATCH] misc: Hide some errors in non-debug builds
+
+These two errors are useless for the users, they cannot do anything with them.
+While it can be useful to know them, they can be also disturbing and they just
+fill the journal log for the users.
+
+Related to https://gitlab.gnome.org/GNOME/gnome-software/-/issues/753
+---
+ lib/gs-plugin-loader.c | 15 +++++++++++----
+ src/gs-shell.c         | 15 +++++++++++----
+ 2 files changed, 22 insertions(+), 8 deletions(-)
+
+diff --git a/lib/gs-plugin-loader.c b/lib/gs-plugin-loader.c
+index 63f741c37..e040358b7 100644
+--- a/lib/gs-plugin-loader.c
++++ b/lib/gs-plugin-loader.c
+@@ -358,10 +358,17 @@ gs_plugin_loader_claim_error (GsPluginLoader *plugin_loader,
+ 
+ 	/* invalid */
+ 	if (error_copy->domain != GS_PLUGIN_ERROR) {
+-		g_warning ("not GsPlugin error %s:%i: %s",
+-			   g_quark_to_string (error_copy->domain),
+-			   error_copy->code,
+-			   error_copy->message);
++		if (g_strcmp0 (BUILD_TYPE, "debug") == 0) {
++			g_warning ("not GsPlugin error %s:%i: %s",
++				   g_quark_to_string (error_copy->domain),
++				   error_copy->code,
++				   error_copy->message);
++		} else {
++			g_debug ("not GsPlugin error %s:%i: %s",
++				 g_quark_to_string (error_copy->domain),
++				 error_copy->code,
++				 error_copy->message);
++		}
+ 		error_copy->domain = GS_PLUGIN_ERROR;
+ 		error_copy->code = GS_PLUGIN_ERROR_FAILED;
+ 	}
+diff --git a/src/gs-shell.c b/src/gs-shell.c
+index beb76f0e9..af297d240 100644
+--- a/src/gs-shell.c
++++ b/src/gs-shell.c
+@@ -2080,10 +2080,17 @@ gs_shell_rescan_events (GsShell *shell)
+ 			    !g_error_matches (error,
+ 					      G_IO_ERROR,
+ 					      G_IO_ERROR_CANCELLED)) {
+-				g_warning ("not handling error %s for action %s: %s",
+-					   gs_plugin_error_to_string (error->code),
+-					   gs_plugin_action_to_string (action),
+-					   error->message);
++				if (g_strcmp0 (BUILD_TYPE, "debug") == 0) {
++					g_warning ("not handling error %s for action %s: %s",
++						   gs_plugin_error_to_string (error->code),
++						   gs_plugin_action_to_string (action),
++						   error->message);
++				} else {
++					g_debug ("not handling error %s for action %s: %s",
++						 gs_plugin_error_to_string (error->code),
++						 gs_plugin_action_to_string (action),
++						 error->message);
++				}
+ 			}
+ 			gs_plugin_event_add_flag (event, GS_PLUGIN_EVENT_FLAG_INVALID);
+ 			return;
+-- 
+GitLab
+

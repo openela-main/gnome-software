@@ -1,0 +1,12 @@
+diff -up gnome-software-41.5/src/gs-removal-dialog.ui.4 gnome-software-41.5/src/gs-removal-dialog.ui
+--- gnome-software-41.5/src/gs-removal-dialog.ui.4	2022-09-12 08:59:57.819169830 +0200
++++ gnome-software-41.5/src/gs-removal-dialog.ui	2022-09-12 09:00:25.148201673 +0200
+@@ -20,7 +20,7 @@
+     </child>
+   </object>
+   <template class="GsRemovalDialog" parent="GtkMessageDialog">
+-    <property name="text" translatable="yes">Incompatible Software</property>
++    <property name="title" translatable="yes">Incompatible Software</property>
+     <property name="modal">True</property>
+     <property name="destroy_with_parent">True</property>
+     <child type="action">
