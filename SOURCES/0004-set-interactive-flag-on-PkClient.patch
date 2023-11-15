@@ -1,0 +1,197 @@
+diff -up gnome-software-3.36.1/plugins/packagekit/gs-plugin-packagekit.c.13 gnome-software-3.36.1/plugins/packagekit/gs-plugin-packagekit.c
+--- gnome-software-3.36.1/plugins/packagekit/gs-plugin-packagekit.c.13	2023-04-25 17:12:24.676551145 +0200
++++ gnome-software-3.36.1/plugins/packagekit/gs-plugin-packagekit.c	2023-04-25 17:13:54.026626204 +0200
+@@ -38,6 +38,7 @@ gs_plugin_initialize (GsPlugin *plugin)
+ 	priv->task = pk_task_new ();
+ 	pk_client_set_background (PK_CLIENT (priv->task), FALSE);
+ 	pk_client_set_cache_age (PK_CLIENT (priv->task), G_MAXUINT);
++	pk_client_set_interactive (PK_CLIENT (priv->task), gs_plugin_has_flags (plugin, GS_PLUGIN_FLAGS_INTERACTIVE));
+ }
+ 
+ void
+@@ -71,6 +72,7 @@ gs_plugin_add_sources_related (GsPlugin
+ 					 PK_FILTER_ENUM_NOT_COLLECTIONS,
+ 					 -1);
+ 	g_mutex_lock (&priv->task_mutex);
++	pk_client_set_interactive (PK_CLIENT (priv->task), gs_plugin_has_flags (plugin, GS_PLUGIN_FLAGS_INTERACTIVE));
+ 	results = pk_client_get_packages (PK_CLIENT(priv->task),
+ 					   filter,
+ 					   cancellable,
+@@ -134,6 +136,7 @@ gs_plugin_add_sources (GsPlugin *plugin,
+ 					 PK_FILTER_ENUM_NOT_SUPPORTED,
+ 					 -1);
+ 	g_mutex_lock (&priv->task_mutex);
++	pk_client_set_interactive (PK_CLIENT (priv->task), gs_plugin_has_flags (plugin, GS_PLUGIN_FLAGS_INTERACTIVE));
+ 	results = pk_client_get_repo_list (PK_CLIENT(priv->task),
+ 					   filter,
+ 					   cancellable,
+@@ -195,6 +198,7 @@ gs_plugin_app_origin_repo_enable (GsPlug
+ 	/* do sync call */
+ 	gs_plugin_status_update (plugin, app, GS_PLUGIN_STATUS_WAITING);
+ 	g_mutex_lock (&priv->task_mutex);
++	pk_client_set_interactive (PK_CLIENT (priv->task), gs_plugin_has_flags (plugin, GS_PLUGIN_FLAGS_INTERACTIVE));
+ 	results = pk_client_repo_enable (PK_CLIENT (priv->task),
+ 	                                 repo_id,
+ 	                                 TRUE,
+@@ -229,6 +233,7 @@ gs_plugin_repo_enable (GsPlugin *plugin,
+ 	gs_app_set_state (app, AS_APP_STATE_INSTALLING);
+ 	gs_packagekit_helper_add_app (helper, app);
+ 	g_mutex_lock (&priv->task_mutex);
++	pk_client_set_interactive (PK_CLIENT (priv->task), gs_plugin_has_flags (plugin, GS_PLUGIN_FLAGS_INTERACTIVE));
+ 	results = pk_client_repo_enable (PK_CLIENT (priv->task),
+ 					 gs_app_get_id (app),
+ 					 TRUE,
+@@ -462,6 +467,7 @@ gs_plugin_repo_disable (GsPlugin *plugin
+ 	gs_app_set_state (app, AS_APP_STATE_REMOVING);
+ 	gs_packagekit_helper_add_app (helper, app);
+ 	g_mutex_lock (&priv->task_mutex);
++	pk_client_set_interactive (PK_CLIENT (priv->task), gs_plugin_has_flags (plugin, GS_PLUGIN_FLAGS_INTERACTIVE));
+ 	results = pk_client_repo_enable (PK_CLIENT (priv->task),
+ 					 gs_app_get_id (app),
+ 					 FALSE,
+@@ -594,6 +600,7 @@ gs_plugin_add_updates (GsPlugin *plugin,
+ 	/* do sync call */
+ 	gs_plugin_status_update (plugin, NULL, GS_PLUGIN_STATUS_WAITING);
+ 	g_mutex_lock (&priv->task_mutex);
++	pk_client_set_interactive (PK_CLIENT (priv->task), gs_plugin_has_flags (plugin, GS_PLUGIN_FLAGS_INTERACTIVE));
+ 	results = pk_client_get_updates (PK_CLIENT (priv->task),
+ 					 pk_bitfield_value (PK_FILTER_ENUM_NONE),
+ 					 cancellable,
+@@ -632,6 +639,7 @@ gs_plugin_add_search_files (GsPlugin *pl
+ 					 PK_FILTER_ENUM_ARCH,
+ 					 -1);
+ 	g_mutex_lock (&priv->task_mutex);
++	pk_client_set_interactive (PK_CLIENT (priv->task), gs_plugin_has_flags (plugin, GS_PLUGIN_FLAGS_INTERACTIVE));
+ 	results = pk_client_search_files (PK_CLIENT (priv->task),
+ 	                                  filter,
+ 	                                  search,
+@@ -664,6 +672,7 @@ gs_plugin_add_search_what_provides (GsPl
+ 					 PK_FILTER_ENUM_ARCH,
+ 					 -1);
+ 	g_mutex_lock (&priv->task_mutex);
++	pk_client_set_interactive (PK_CLIENT (priv->task), gs_plugin_has_flags (plugin, GS_PLUGIN_FLAGS_INTERACTIVE));
+ 	results = pk_client_what_provides (PK_CLIENT (priv->task),
+ 	                                   filter,
+ 	                                   search,
+diff -up gnome-software-3.36.1/plugins/packagekit/gs-plugin-packagekit-local.c.13 gnome-software-3.36.1/plugins/packagekit/gs-plugin-packagekit-local.c
+--- gnome-software-3.36.1/plugins/packagekit/gs-plugin-packagekit-local.c.13	2020-05-22 16:51:19.876380400 +0200
++++ gnome-software-3.36.1/plugins/packagekit/gs-plugin-packagekit-local.c	2023-04-25 17:12:24.756551212 +0200
+@@ -29,6 +29,7 @@ gs_plugin_initialize (GsPlugin *plugin)
+ 	g_mutex_init (&priv->task_mutex);
+ 	priv->task = pk_task_new ();
+ 	pk_client_set_background (PK_CLIENT (priv->task), FALSE);
++	pk_client_set_interactive (PK_CLIENT (priv->task), gs_plugin_has_flags (plugin, GS_PLUGIN_FLAGS_INTERACTIVE));
+ }
+ 
+ void
+@@ -189,6 +190,7 @@ gs_plugin_file_to_app (GsPlugin *plugin,
+ 	files = g_strsplit (filename, "\t", -1);
+ 	g_mutex_lock (&priv->task_mutex);
+ 	pk_client_set_cache_age (PK_CLIENT (priv->task), G_MAXUINT);
++	pk_client_set_interactive (PK_CLIENT (priv->task), gs_plugin_has_flags (plugin, GS_PLUGIN_FLAGS_INTERACTIVE));
+ 	results = pk_client_get_details_local (PK_CLIENT (priv->task),
+ 					       files,
+ 					       cancellable,
+diff -up gnome-software-3.36.1/plugins/packagekit/gs-plugin-packagekit-refine.c.13 gnome-software-3.36.1/plugins/packagekit/gs-plugin-packagekit-refine.c
+--- gnome-software-3.36.1/plugins/packagekit/gs-plugin-packagekit-refine.c.13	2020-05-22 16:51:19.877380400 +0200
++++ gnome-software-3.36.1/plugins/packagekit/gs-plugin-packagekit-refine.c	2023-04-25 17:12:24.756551212 +0200
+@@ -56,6 +56,7 @@ gs_plugin_initialize (GsPlugin *plugin)
+ 			  G_CALLBACK (gs_plugin_packagekit_repo_list_changed_cb), plugin);
+ 	pk_client_set_background (priv->client, FALSE);
+ 	pk_client_set_cache_age (priv->client, G_MAXUINT);
++	pk_client_set_interactive (priv->client, gs_plugin_has_flags (plugin, GS_PLUGIN_FLAGS_INTERACTIVE));
+ 
+ 	/* need pkgname and ID */
+ 	gs_plugin_add_rule (plugin, GS_PLUGIN_RULE_RUN_AFTER, "appstream");
+@@ -587,6 +588,7 @@ gs_plugin_packagekit_refine_distro_upgra
+ 	g_mutex_lock (&priv->client_mutex);
+ 	cache_age_save = pk_client_get_cache_age (priv->client);
+ 	pk_client_set_cache_age (priv->client, 60 * 60 * 24 * 7); /* once per week */
++	pk_client_set_interactive (priv->client, gs_plugin_has_flags (plugin, GS_PLUGIN_FLAGS_INTERACTIVE));
+ 	results = pk_client_upgrade_system (priv->client,
+ 					    pk_bitfield_from_enums (PK_TRANSACTION_FLAG_ENUM_SIMULATE, -1),
+ 					    gs_app_get_version (app),
+diff -up gnome-software-3.36.1/plugins/packagekit/gs-plugin-packagekit-refine-repos.c.13 gnome-software-3.36.1/plugins/packagekit/gs-plugin-packagekit-refine-repos.c
+--- gnome-software-3.36.1/plugins/packagekit/gs-plugin-packagekit-refine-repos.c.13	2020-05-22 16:51:19.877380400 +0200
++++ gnome-software-3.36.1/plugins/packagekit/gs-plugin-packagekit-refine-repos.c	2023-04-25 17:12:24.756551212 +0200
+@@ -36,6 +36,7 @@ gs_plugin_initialize (GsPlugin *plugin)
+ 	priv->client = pk_client_new ();
+ 	pk_client_set_background (priv->client, FALSE);
+ 	pk_client_set_cache_age (priv->client, G_MAXUINT);
++	pk_client_set_interactive (priv->client, gs_plugin_has_flags (plugin, GS_PLUGIN_FLAGS_INTERACTIVE));
+ 
+ 	/* need repos::repo-filename */
+ 	gs_plugin_add_rule (plugin, GS_PLUGIN_RULE_RUN_AFTER, "repos");
+@@ -65,6 +66,7 @@ gs_plugin_packagekit_refine_repo_from_fi
+ 	to_array[0] = filename;
+ 	gs_packagekit_helper_add_app (helper, app);
+ 	g_mutex_lock (&priv->client_mutex);
++	pk_client_set_interactive (priv->client, gs_plugin_has_flags (plugin, GS_PLUGIN_FLAGS_INTERACTIVE));
+ 	results = pk_client_search_files (priv->client,
+ 	                                  pk_bitfield_from_enums (PK_FILTER_ENUM_INSTALLED, -1),
+ 	                                  (gchar **) to_array,
+diff -up gnome-software-3.36.1/plugins/packagekit/gs-plugin-packagekit-refresh.c.13 gnome-software-3.36.1/plugins/packagekit/gs-plugin-packagekit-refresh.c
+--- gnome-software-3.36.1/plugins/packagekit/gs-plugin-packagekit-refresh.c.13	2020-05-22 16:51:19.877380400 +0200
++++ gnome-software-3.36.1/plugins/packagekit/gs-plugin-packagekit-refresh.c	2023-04-25 17:12:24.756551212 +0200
+@@ -35,6 +35,7 @@ gs_plugin_initialize (GsPlugin *plugin)
+ 	priv->task = pk_task_new ();
+ 	pk_task_set_only_download (priv->task, TRUE);
+ 	pk_client_set_background (PK_CLIENT (priv->task), TRUE);
++	pk_client_set_interactive (PK_CLIENT (priv->task), gs_plugin_has_flags (plugin, GS_PLUGIN_FLAGS_INTERACTIVE));
+ 
+ 	/* we can return better results than dpkg directly */
+ 	gs_plugin_add_rule (plugin, GS_PLUGIN_RULE_CONFLICTS, "dpkg");
+@@ -67,6 +68,7 @@ _download_only (GsPlugin *plugin, GsAppL
+ 	 * we end up downloading a different set of packages than what was
+ 	 * shown to the user */
+ 	pk_client_set_cache_age (PK_CLIENT (priv->task), G_MAXUINT);
++	pk_client_set_interactive (PK_CLIENT (priv->task), gs_plugin_has_flags (plugin, GS_PLUGIN_FLAGS_INTERACTIVE));
+ 	results = pk_client_get_updates (PK_CLIENT (priv->task),
+ 					 pk_bitfield_value (PK_FILTER_ENUM_NONE),
+ 					 cancellable,
+@@ -165,6 +167,7 @@ gs_plugin_refresh (GsPlugin *plugin,
+ 	g_mutex_lock (&priv->task_mutex);
+ 	/* cache age of 1 is user-initiated */
+ 	pk_client_set_background (PK_CLIENT (priv->task), cache_age > 1);
++	pk_client_set_interactive (PK_CLIENT (priv->task), gs_plugin_has_flags (plugin, GS_PLUGIN_FLAGS_INTERACTIVE));
+ 	pk_client_set_cache_age (PK_CLIENT (priv->task), cache_age);
+ 	/* refresh the metadata */
+ 	results = pk_client_refresh_cache (PK_CLIENT (priv->task),
+diff -up gnome-software-3.36.1/plugins/packagekit/gs-plugin-packagekit-upgrade.c.13 gnome-software-3.36.1/plugins/packagekit/gs-plugin-packagekit-upgrade.c
+--- gnome-software-3.36.1/plugins/packagekit/gs-plugin-packagekit-upgrade.c.13	2020-05-22 16:51:19.877380400 +0200
++++ gnome-software-3.36.1/plugins/packagekit/gs-plugin-packagekit-upgrade.c	2023-04-25 17:14:16.586645156 +0200
+@@ -30,6 +30,7 @@ gs_plugin_initialize (GsPlugin *plugin)
+ 	pk_task_set_only_download (priv->task, TRUE);
+ 	pk_client_set_background (PK_CLIENT (priv->task), TRUE);
+ 	pk_client_set_cache_age (PK_CLIENT (priv->task), 60 * 60 * 24);
++	pk_client_set_interactive (PK_CLIENT (priv->task), gs_plugin_has_flags (plugin, GS_PLUGIN_FLAGS_INTERACTIVE));
+ }
+ 
+ void
+@@ -69,6 +70,7 @@ gs_plugin_app_upgrade_download (GsPlugin
+ 	gs_app_set_state (app, AS_APP_STATE_INSTALLING);
+ 	gs_packagekit_helper_set_progress_app (helper, app);
+ 	g_mutex_lock (&priv->task_mutex);
++	pk_client_set_interactive (PK_CLIENT (priv->task), gs_plugin_has_flags (plugin, GS_PLUGIN_FLAGS_INTERACTIVE));
+ 	results = pk_task_upgrade_system_sync (priv->task,
+ 					       gs_app_get_version (app),
+ 					       PK_UPGRADE_KIND_ENUM_COMPLETE,
+diff -up gnome-software-3.36.1/plugins/packagekit/gs-plugin-packagekit-url-to-app.c.13 gnome-software-3.36.1/plugins/packagekit/gs-plugin-packagekit-url-to-app.c
+--- gnome-software-3.36.1/plugins/packagekit/gs-plugin-packagekit-url-to-app.c.13	2020-05-22 16:51:19.878380300 +0200
++++ gnome-software-3.36.1/plugins/packagekit/gs-plugin-packagekit-url-to-app.c	2023-04-25 17:12:24.756551212 +0200
+@@ -28,6 +28,7 @@ gs_plugin_initialize (GsPlugin *plugin)
+ 
+ 	pk_client_set_background (priv->client, FALSE);
+ 	pk_client_set_cache_age (priv->client, G_MAXUINT);
++	pk_client_set_interactive (priv->client, gs_plugin_has_flags (plugin, GS_PLUGIN_FLAGS_INTERACTIVE));
+ }
+ 
+ void
+@@ -87,6 +88,7 @@ gs_plugin_url_to_app (GsPlugin *plugin,
+ 	package_ids[0] = g_strdup (path);
+ 
+ 	g_mutex_lock (&priv->client_mutex);
++	pk_client_set_interactive (priv->client, gs_plugin_has_flags (plugin, GS_PLUGIN_FLAGS_INTERACTIVE));
+ 	results = pk_client_resolve (priv->client,
+ 				     pk_bitfield_from_enums (PK_FILTER_ENUM_NEWEST, PK_FILTER_ENUM_ARCH, -1),
+ 				     package_ids,
