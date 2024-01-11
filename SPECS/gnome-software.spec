@@ -1,7 +1,7 @@
 %global glib2_version 2.56.0
 %global gtk3_version 3.22.4
 %global json_glib_version 1.2.0
-%global packagekit_version 1.1.1
+%global packagekit_version 1.1.12-7
 %global appstream_glib_version 0.7.14-3
 %global libsoup_version 2.52.0
 %global gsettings_desktop_schemas_version 3.12.0
@@ -14,7 +14,7 @@
 
 Name:      gnome-software
 Version:   3.36.1
-Release:   11%{?dist}
+Release:   12%{?dist}
 Summary:   A software center for GNOME
 
 License:   GPLv2+
@@ -41,6 +41,7 @@ Patch8:    gs-updates-page-keep-showing-installing-apps.patch
 Patch9:    flatpak-same-runtime-origin.patch
 Patch10:   devel-install-headers.patch
 Patch11:   0003-hide-some-errors.patch
+Patch12:   0004-set-interactive-flag-on-PkClient.patch
 
 BuildRequires: gcc
 BuildRequires: gettext
@@ -228,6 +229,9 @@ desktop-file-validate %{buildroot}%{_datadir}/applications/*.desktop
 %{_datadir}/gtk-doc/html/gnome-software
 
 %changelog
+* Tue Apr 25 2023 Milan Crha <mcrha@redhat.com> - 3.36.1-12
+- Resolves: #1857654 (packagekit: Set interactive flag on PkClient)
+
 * Thu Sep 22 2022 Milan Crha <mcrha@redhat.com> - 3.36.1-11
 - Resolves: #2124772 (Hide some errors in non-debug builds)
 
