@@ -12,7 +12,7 @@
 
 Name:      gnome-software
 Version:   41.5
-Release:   2%{?dist}
+Release:   3%{?dist}
 Summary:   A software center for GNOME
 
 License:   GPLv2+
@@ -204,6 +204,9 @@ desktop-file-validate %{buildroot}%{_datadir}/applications/*.desktop
 %{_datadir}/gtk-doc/html/gnome-software
 
 %changelog
+* Thu Aug 03 2023 Milan Crha <mcrha@redhat.com> - 41.5-3
+- Resolves: #2228374 (Rebuild to move gnome-software-devel into CRB)
+
 * Thu Sep 22 2022 Milan Crha <mcrha@redhat.com> - 41.5-2
 - Resolves: #2128812 (Correct property name in GsRemovalDialog .ui file)
 - Resolves: #2129021 (Hide some errors in non-debug builds)
