@@ -1,0 +1,42 @@
+From 895d1ca748f4f33a852853f5f07903fb549fb66f Mon Sep 17 00:00:00 2001
+From: Milan Crha <mcrha@redhat.com>
+Date: Mon, 11 Oct 2021 09:13:59 +0200
+Subject: [PATCH] gs-plugin-provenance: Set COMPULSORY quirk only on REPOSITORY
+ apps
+
+The compulsory quirk related to repositories, which cannot be removed,
+not to the applications provided by those repositories, thus set that
+quirk only on repositories, not on the apps from it.
+
+Closes https://gitlab.gnome.org/GNOME/gnome-software/-/issues/1488
+---
+ plugins/core/gs-plugin-provenance.c | 13 +++++--------
+ 1 file changed, 5 insertions(+), 8 deletions(-)
+
+diff --git a/plugins/core/gs-plugin-provenance.c b/plugins/core/gs-plugin-provenance.c
+index 22f3c98e..e44a55f0 100644
+--- a/plugins/core/gs-plugin-provenance.c
++++ b/plugins/core/gs-plugin-provenance.c
+@@ -45,14 +45,11 @@ static void
+ gs_plugin_provenance_add_quirks (GsApp *app,
+ 				 guint quirks)
+ {
+-	GsAppQuirk array[] = {
+-		GS_APP_QUIRK_PROVENANCE,
+-		GS_APP_QUIRK_COMPULSORY
+-	};
+-	for (guint ii = 0; ii < G_N_ELEMENTS (array); ii++) {
+-		if ((quirks & array[ii]) != 0)
+-			gs_app_add_quirk (app, array[ii]);
+-	}
++	if ((quirks & GS_APP_QUIRK_PROVENANCE) != 0)
++		gs_app_add_quirk (app, GS_APP_QUIRK_PROVENANCE);
++	if ((quirks & GS_APP_QUIRK_COMPULSORY) != 0 &&
++	    gs_app_get_kind (app) == AS_COMPONENT_KIND_REPOSITORY)
++		gs_app_add_quirk (app, GS_APP_QUIRK_COMPULSORY);
+ }
+ 
+ static gchar **
+-- 
+2.31.1
+
