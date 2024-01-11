@@ -1,0 +1,117 @@
+diff -up gnome-software-3.36.1/plugins/flatpak/gs-flatpak.c.10 gnome-software-3.36.1/plugins/flatpak/gs-flatpak.c
+--- gnome-software-3.36.1/plugins/flatpak/gs-flatpak.c.10	2020-05-22 16:51:19.868380300 +0200
++++ gnome-software-3.36.1/plugins/flatpak/gs-flatpak.c	2021-06-21 21:24:00.233689928 +0200
+@@ -1844,12 +1844,13 @@ gs_flatpak_refine_app_state (GsFlatpak *
+ }
+ 
+ static GsApp *
+-gs_flatpak_create_runtime (GsFlatpak *self, GsApp *parent, const gchar *runtime)
++gs_flatpak_create_runtime (GsFlatpak *self, GsApp *parent, const gchar *runtime, GCancellable *cancellable)
+ {
+ 	g_autofree gchar *source = NULL;
+ 	g_auto(GStrv) split = NULL;
+ 	g_autoptr(GsApp) app_cache = NULL;
+ 	g_autoptr(GsApp) app = NULL;
++	const gchar *origin;
+ 
+ 	/* get the name/arch/branch */
+ 	split = g_strsplit (runtime, "/", -1);
+@@ -1864,6 +1865,24 @@ gs_flatpak_create_runtime (GsFlatpak *se
+ 	gs_app_set_kind (app, AS_APP_KIND_RUNTIME);
+ 	gs_app_set_branch (app, split[2]);
+ 
++	origin = gs_app_get_origin (parent);
++	if (origin != NULL) {
++		g_autoptr(FlatpakRemoteRef) xref = NULL;
++
++		xref = flatpak_installation_fetch_remote_ref_sync (self->installation,
++								   origin,
++								   FLATPAK_REF_KIND_RUNTIME,
++								   gs_app_get_id (app),
++								   gs_flatpak_app_get_ref_arch (parent),
++								   gs_app_get_branch (app),
++								   cancellable,
++								   NULL);
++
++		/* Prefer runtime from the same origin as the parent application */
++		if (xref)
++			gs_app_set_origin (app, origin);
++	}
++
+ 	/* search in the cache */
+ 	app_cache = gs_plugin_cache_lookup (self->plugin, gs_app_get_unique_id (app));
+ 	if (app_cache != NULL) {
+@@ -1898,6 +1917,7 @@ gs_flatpak_set_app_metadata (GsFlatpak *
+ 			     GsApp *app,
+ 			     const gchar *data,
+ 			     gsize length,
++			     GCancellable *cancellable,
+ 			     GError **error)
+ {
+ 	gboolean secure = TRUE;
+@@ -1951,7 +1971,7 @@ gs_flatpak_set_app_metadata (GsFlatpak *
+ 		gs_app_add_kudo (app, GS_APP_KUDO_SANDBOXED_SECURE);
+ 
+ 	/* create runtime */
+-	app_runtime = gs_flatpak_create_runtime (self, app, runtime);
++	app_runtime = gs_flatpak_create_runtime (self, app, runtime, cancellable);
+ 	if (app_runtime != NULL) {
+ 		gs_plugin_refine_item_scope (self, app_runtime);
+ 		gs_app_set_runtime (app, app_runtime);
+@@ -2046,7 +2066,7 @@ gs_plugin_refine_item_metadata (GsFlatpa
+ 	}
+ 
+ 	/* parse key file */
+-	if (!gs_flatpak_set_app_metadata (self, app, str, len, error))
++	if (!gs_flatpak_set_app_metadata (self, app, str, len, cancellable, error))
+ 		return FALSE;
+ 	return TRUE;
+ }
+@@ -2506,6 +2526,7 @@ gs_flatpak_file_to_app_bundle (GsFlatpak
+ 	if (!gs_flatpak_set_app_metadata (self, app,
+ 					  g_bytes_get_data (metadata, NULL),
+ 					  g_bytes_get_size (metadata),
++					  cancellable,
+ 					  error))
+ 		return NULL;
+ 
+diff -up gnome-software-3.36.1/plugins/flatpak/gs-plugin-flatpak.c.10 gnome-software-3.36.1/plugins/flatpak/gs-plugin-flatpak.c
+--- gnome-software-3.36.1/plugins/flatpak/gs-plugin-flatpak.c.10	2021-06-21 20:38:42.585590510 +0200
++++ gnome-software-3.36.1/plugins/flatpak/gs-plugin-flatpak.c	2021-06-21 21:23:00.977665979 +0200
+@@ -852,6 +852,36 @@ gs_plugin_app_install (GsPlugin *plugin,
+ 						      ref, NULL, error)) {
+ 			gs_flatpak_error_convert (error);
+ 			return FALSE;
++		} else {
++			GsApp *runtime;
++
++			runtime = gs_app_get_runtime (app);
++			if (runtime != NULL && gs_app_get_origin (runtime) != NULL) {
++				g_autoptr(FlatpakInstalledRef) runtime_ref = NULL;
++
++				runtime_ref = flatpak_installation_get_installed_ref (gs_flatpak_get_installation (flatpak),
++						gs_flatpak_app_get_ref_kind (runtime),
++						gs_flatpak_app_get_ref_name (runtime),
++						gs_flatpak_app_get_ref_arch (runtime),
++						gs_app_get_branch (runtime),
++						cancellable,
++						NULL);
++				if (runtime_ref == NULL) {
++					g_autoptr(GError) error_local = NULL;
++
++					g_clear_pointer (&ref, g_free);
++					ref = gs_flatpak_app_get_ref_display (runtime);
++					if (!flatpak_transaction_add_install (transaction, gs_app_get_origin (runtime), ref, NULL, &error_local)) {
++						if (g_error_matches (error_local, FLATPAK_ERROR, FLATPAK_ERROR_ALREADY_INSTALLED)) {
++							g_clear_error (&error_local);
++						} else {
++							g_propagate_error (error, g_steal_pointer (&error_local));
++							gs_flatpak_error_convert (error);
++							return FALSE;
++						}
++					}
++				}
++			}
+ 		}
+ 	}
+ 

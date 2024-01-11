@@ -1,0 +1,97 @@
+diff -up gnome-software-3.36.1/lib/gs-plugin.c.1888404 gnome-software-3.36.1/lib/gs-plugin.c
+--- gnome-software-3.36.1/lib/gs-plugin.c.1888404	2021-05-24 13:50:34.302612057 +0200
++++ gnome-software-3.36.1/lib/gs-plugin.c	2021-05-24 13:50:39.160609728 +0200
+@@ -1398,6 +1398,44 @@ gs_plugin_cache_lookup (GsPlugin *plugin
+ }
+ 
+ /**
++ * gs_plugin_cache_lookup_by_state:
++ * @plugin: a #GsPlugin
++ * @list: a #GsAppList to add applications to
++ * @state: a #AsAppState
++ *
++ * Adds each cached #GsApp with state @state into the @list.
++ * When the state is %AS_APP_STATE_UNKNOWN, then adds all
++ * cached applications.
++ *
++ * Since: 3.36.1-8
++ **/
++void
++gs_plugin_cache_lookup_by_state (GsPlugin *plugin,
++				 GsAppList *list,
++				 AsAppState state)
++{
++	GsPluginPrivate *priv;
++	GHashTableIter iter;
++	gpointer value;
++	g_autoptr(GMutexLocker) locker = NULL;
++
++	g_return_if_fail (GS_IS_PLUGIN (plugin));
++	g_return_if_fail (GS_IS_APP_LIST (list));
++
++	priv = gs_plugin_get_instance_private (plugin);
++	locker = g_mutex_locker_new (&priv->cache_mutex);
++
++	g_hash_table_iter_init (&iter, priv->cache);
++	while (g_hash_table_iter_next (&iter, NULL, &value)) {
++		GsApp *app = value;
++
++		if (state == AS_APP_STATE_UNKNOWN ||
++		    state == gs_app_get_state (app))
++			gs_app_list_add (list, app);
++	}
++}
++
++/**
+  * gs_plugin_cache_remove:
+  * @plugin: a #GsPlugin
+  * @key: a key which matches
+diff -up gnome-software-3.36.1/lib/gs-plugin.h.1888404 gnome-software-3.36.1/lib/gs-plugin.h
+--- gnome-software-3.36.1/lib/gs-plugin.h.1888404	2021-05-24 13:50:34.302612057 +0200
++++ gnome-software-3.36.1/lib/gs-plugin.h	2021-05-24 13:50:39.160609728 +0200
+@@ -102,6 +102,9 @@ gboolean	 gs_plugin_check_distro_id		(Gs
+ 							 const gchar	*distro_id);
+ GsApp		*gs_plugin_cache_lookup			(GsPlugin	*plugin,
+ 							 const gchar	*key);
++void		 gs_plugin_cache_lookup_by_state	(GsPlugin	*plugin,
++							 GsAppList	*list,
++							 AsAppState	 state);
+ void		 gs_plugin_cache_add			(GsPlugin	*plugin,
+ 							 const gchar	*key,
+ 							 GsApp		*app);
+diff -up gnome-software-3.36.1/lib/gs-plugin-loader.c.1888404 gnome-software-3.36.1/lib/gs-plugin-loader.c
+--- gnome-software-3.36.1/lib/gs-plugin-loader.c.1888404	2021-05-24 13:50:34.302612057 +0200
++++ gnome-software-3.36.1/lib/gs-plugin-loader.c	2021-05-24 13:50:39.159609728 +0200
+@@ -1273,7 +1273,7 @@ static gboolean
+ gs_plugin_loader_app_is_valid_updatable (GsApp *app, gpointer user_data)
+ {
+ 	return gs_plugin_loader_app_is_valid (app, user_data) &&
+-		gs_app_is_updatable (app);
++		(gs_app_is_updatable (app) || gs_app_get_state (app) == AS_APP_STATE_INSTALLING);
+ }
+ 
+ static gboolean
+diff -up gnome-software-3.36.1/plugins/flatpak/gs-plugin-flatpak.c.1888404 gnome-software-3.36.1/plugins/flatpak/gs-plugin-flatpak.c
+--- gnome-software-3.36.1/plugins/flatpak/gs-plugin-flatpak.c.1888404	2021-05-24 13:50:34.310612054 +0200
++++ gnome-software-3.36.1/plugins/flatpak/gs-plugin-flatpak.c	2021-05-24 13:50:39.161609727 +0200
+@@ -218,6 +218,7 @@ gs_plugin_add_updates (GsPlugin *plugin,
+ 		if (!gs_flatpak_add_updates (flatpak, list, cancellable, error))
+ 			return FALSE;
+ 	}
++	gs_plugin_cache_lookup_by_state (plugin, list, AS_APP_STATE_INSTALLING);
+ 	return TRUE;
+ }
+ 
+diff -up gnome-software-3.36.1/src/gs-updates-page.c.1888404 gnome-software-3.36.1/src/gs-updates-page.c
+--- gnome-software-3.36.1/src/gs-updates-page.c.1888404	2021-05-24 13:50:39.161609727 +0200
++++ gnome-software-3.36.1/src/gs-updates-page.c	2021-05-24 13:51:00.211599638 +0200
+@@ -139,7 +139,8 @@ gs_updates_page_invalidate (GsUpdatesPag
+ static GsUpdatesSectionKind
+ _get_app_section (GsApp *app)
+ {
+-	if (gs_app_get_state (app) == AS_APP_STATE_UPDATABLE_LIVE) {
++	if (gs_app_get_state (app) == AS_APP_STATE_UPDATABLE_LIVE ||
++	    gs_app_get_state (app) == AS_APP_STATE_INSTALLING) {
+ 		if (gs_app_get_kind (app) == AS_APP_KIND_FIRMWARE)
+ 			return GS_UPDATES_SECTION_KIND_ONLINE_FIRMWARE;
+ 		return GS_UPDATES_SECTION_KIND_ONLINE;

@@ -1,0 +1,27 @@
+From b50003ed83cab2c6cf6654e5972d6ee3e2303eb6 Mon Sep 17 00:00:00 2001
+From: Milan Crha <mcrha@redhat.com>
+Date: Tue, 16 Feb 2021 16:09:08 +0100
+Subject: [PATCH] odrs: Cannot be disabled by filling empty 'review-server'
+ setting
+
+Closes https://gitlab.gnome.org/GNOME/gnome-software/-/issues/1143
+---
+ plugins/odrs/gs-plugin-odrs.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/plugins/odrs/gs-plugin-odrs.c b/plugins/odrs/gs-plugin-odrs.c
+index f0c0c3b91..2c9bd878d 100644
+--- a/plugins/odrs/gs-plugin-odrs.c
++++ b/plugins/odrs/gs-plugin-odrs.c
+@@ -175,6 +175,8 @@ gs_plugin_initialize (GsPlugin *plugin)
+ 
+ 	/* set name of MetaInfo file */
+ 	gs_plugin_set_appstream_id (plugin, "org.gnome.Software.Plugin.Odrs");
++
++	gs_plugin_set_enabled (plugin, priv->review_server && *priv->review_server);
+ }
+ 
+ static GArray *
+-- 
+GitLab
+

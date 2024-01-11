@@ -1,0 +1,61 @@
+From 9dce785c2a71e81c410c6e314dd4d4db6cc02808 Mon Sep 17 00:00:00 2001
+From: Kalev Lember <klember@redhat.com>
+Date: Wed, 3 Jun 2020 16:35:03 +0200
+Subject: [PATCH] Fix hardcoded desktop and appdata names to match what's in
+ RHEL 8.3
+
+---
+ data/assets/org.gnome.Software.Featured.xml | 2 +-
+ plugins/core/gs-plugin-hardcoded-popular.c  | 2 +-
+ src/gs-folders.c                            | 6 +++---
+ 3 files changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/data/assets/org.gnome.Software.Featured.xml b/data/assets/org.gnome.Software.Featured.xml
+index d1d920be..822fc6a9 100644
+--- a/data/assets/org.gnome.Software.Featured.xml
++++ b/data/assets/org.gnome.Software.Featured.xml
+@@ -145,7 +145,7 @@ text-shadow: none;</value>
+     </custom>
+   </component>
+   <component merge="append">
+-    <id>org.gimp.GIMP</id>
++    <id>gimp.desktop</id>
+     <custom>
+       <value key="GnomeSoftware::FeatureTile-css">border-color: #4a8c30;
+ text-shadow: none;
+diff --git a/plugins/core/gs-plugin-hardcoded-popular.c b/plugins/core/gs-plugin-hardcoded-popular.c
+index 3998a813..03b44475 100644
+--- a/plugins/core/gs-plugin-hardcoded-popular.c
++++ b/plugins/core/gs-plugin-hardcoded-popular.c
+@@ -29,7 +29,7 @@ gs_plugin_add_popular (GsPlugin *plugin,
+ 		"org.gnome.clocks.desktop",
+ 		"org.gnome.Dictionary.desktop",
+ 		"org.gnome.Documents.desktop",
+-		"org.gnome.Evince",
++		"evince.desktop",
+ 		"org.gnome.gedit.desktop",
+ 		"org.gnome.Maps.desktop",
+ 		"org.gnome.Weather",
+diff --git a/src/gs-folders.c b/src/gs-folders.c
+index fa068f0e..589cc1e2 100644
+--- a/src/gs-folders.c
++++ b/src/gs-folders.c
+@@ -560,12 +560,12 @@ gs_folders_convert (void)
+ 			"org.gnome.DejaDup.desktop",
+ 			"org.gnome.Dictionary.desktop",
+ 			"org.gnome.DiskUtility.desktop",
+-			"org.gnome.eog.desktop",
+-			"org.gnome.Evince.desktop",
++			"eog.desktop",
++			"evince.desktop",
+ 			"org.gnome.FileRoller.desktop",
+ 			"org.gnome.fonts.desktop",
+ 			"org.gnome.Screenshot.desktop",
+-			"org.gnome.seahorse.Application.desktop",
++			"seahorse.desktop",
+ 			"org.gnome.Terminal.desktop",
+ 			"org.gnome.tweaks.desktop",
+ 			"org.gnome.Usage.desktop",
+-- 
+2.18.2
+

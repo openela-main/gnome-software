@@ -1,0 +1,61 @@
+diff -up gnome-software-3.36.1/lib/gs-plugin-loader.c.12 gnome-software-3.36.1/lib/gs-plugin-loader.c
+--- gnome-software-3.36.1/lib/gs-plugin-loader.c.12	2022-09-22 12:17:59.367881179 +0200
++++ gnome-software-3.36.1/lib/gs-plugin-loader.c	2022-09-22 12:17:59.392881205 +0200
+@@ -333,10 +333,17 @@ gs_plugin_job_to_failed_event (GsPluginJ
+ 
+ 	/* invalid */
+ 	if (error->domain != GS_PLUGIN_ERROR) {
+-		g_warning ("not GsPlugin error %s:%i: %s",
+-			   g_quark_to_string (error->domain),
+-			   error->code,
+-			   error->message);
++		if (g_strcmp0 (BUILD_TYPE, "debug") == 0) {
++			g_warning ("not GsPlugin error %s:%i: %s",
++				   g_quark_to_string (error->domain),
++				   error->code,
++				   error->message);
++		} else {
++			g_debug ("not GsPlugin error %s:%i: %s",
++				 g_quark_to_string (error->domain),
++				 error->code,
++				 error->message);
++		}
+ 		g_set_error_literal (&error_copy,
+ 				     GS_PLUGIN_ERROR,
+ 				     GS_PLUGIN_ERROR_FAILED,
+diff -up gnome-software-3.36.1/meson.build.12 gnome-software-3.36.1/meson.build
+--- gnome-software-3.36.1/meson.build.12	2022-09-22 12:18:09.900892043 +0200
++++ gnome-software-3.36.1/meson.build	2022-09-22 12:18:19.311901744 +0200
+@@ -9,6 +9,7 @@ conf = configuration_data()
+ conf.set_quoted('VERSION', meson.project_version())
+ conf.set_quoted('PACKAGE_NAME', meson.project_name())
+ conf.set_quoted('PACKAGE_VERSION', meson.project_version())
++conf.set_quoted('BUILD_TYPE', get_option('buildtype'))
+ 
+ # this refers to the gnome-software plugin API version
+ # this is not in any way related to a package or soname version
+diff -up gnome-software-3.36.1/src/gs-shell.c.12 gnome-software-3.36.1/src/gs-shell.c
+--- gnome-software-3.36.1/src/gs-shell.c.12	2022-09-22 12:17:59.301881111 +0200
++++ gnome-software-3.36.1/src/gs-shell.c	2022-09-22 12:17:59.392881205 +0200
+@@ -2044,10 +2044,17 @@ gs_shell_rescan_events (GsShell *shell)
+ 			    !g_error_matches (error,
+ 					      G_IO_ERROR,
+ 					      G_IO_ERROR_CANCELLED)) {
+-				g_warning ("not handling error %s for action %s: %s",
+-					   gs_plugin_error_to_string (error->code),
+-					   gs_plugin_action_to_string (action),
+-					   error->message);
++				if (g_strcmp0 (BUILD_TYPE, "debug") == 0) {
++					g_warning ("not handling error %s for action %s: %s",
++						   gs_plugin_error_to_string (error->code),
++						   gs_plugin_action_to_string (action),
++						   error->message);
++				} else {
++					g_debug ("not handling error %s for action %s: %s",
++						 gs_plugin_error_to_string (error->code),
++						 gs_plugin_action_to_string (action),
++						 error->message);
++				}
+ 			}
+ 			gs_plugin_event_add_flag (event, GS_PLUGIN_EVENT_FLAG_INVALID);
+ 			return;
