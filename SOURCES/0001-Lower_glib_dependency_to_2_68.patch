@@ -1,0 +1,198 @@
+diff --git a/lib/gs-fedora-third-party.c b/lib/gs-fedora-third-party.c
+index e79bba8..9e7115a 100644
+--- a/lib/gs-fedora-third-party.c
++++ b/lib/gs-fedora-third-party.c
+@@ -11,6 +11,10 @@
+ 
+ #include "gs-fedora-third-party.h"
+ 
++#if !GLIB_CHECK_VERSION(2, 70, 0)
++#define g_spawn_check_wait_status g_spawn_check_exit_status
++#endif
++
+ struct _GsFedoraThirdParty
+ {
+ 	GObject		 parent_instance;
+diff --git a/lib/gs-icon-downloader.c b/lib/gs-icon-downloader.c
+index a1a669c..577fda2 100644
+--- a/lib/gs-icon-downloader.c
++++ b/lib/gs-icon-downloader.c
+@@ -41,7 +41,7 @@ struct _GsIconDownloader
+ 	GCancellable	*cancellable; /* (owned) */
+ };
+ 
+-G_DEFINE_FINAL_TYPE (GsIconDownloader, gs_icon_downloader, G_TYPE_OBJECT)
++G_DEFINE_TYPE (GsIconDownloader, gs_icon_downloader, G_TYPE_OBJECT)
+ 
+ typedef enum {
+ 	PROP_MAXIMUM_SIZE = 1,
+diff --git a/lib/gs-job-manager.c b/lib/gs-job-manager.c
+index 98d79a7..694a157 100644
+--- a/lib/gs-job-manager.c
++++ b/lib/gs-job-manager.c
+@@ -100,7 +100,9 @@ watch_data_unref (WatchData *data)
+ 					       watch_free_data_cb,
+ 					       g_steal_pointer (&data),
+ 					       (GDestroyNotify) watch_data_unref);
++			#if GLIB_CHECK_VERSION(2, 70, 0)
+ 			g_source_set_static_name (idle_source, G_STRFUNC);
++			#endif
+ 			g_source_attach (idle_source, callback_context);
+ 
+ 			/* Freeing will eventually happen in watch_free_data_cb(). */
+@@ -359,7 +361,9 @@ gs_job_manager_add_job (GsJobManager *self,
+ 					       watch_call_handler_cb,
+ 					       g_steal_pointer (&idle_data),
+ 					       (GDestroyNotify) watch_call_handler_data_free);
++			#if GLIB_CHECK_VERSION(2, 70, 0)
+ 			g_source_set_static_name (idle_source, G_STRFUNC);
++			#endif
+ 			g_source_attach (idle_source, data->callback_context);
+ 		}
+ 	}
+@@ -420,7 +424,9 @@ gs_job_manager_remove_job (GsJobManager *self,
+ 					       watch_call_handler_cb,
+ 					       g_steal_pointer (&idle_data),
+ 					       (GDestroyNotify) watch_call_handler_data_free);
++			#if GLIB_CHECK_VERSION(2, 70, 0)
+ 			g_source_set_static_name (idle_source, G_STRFUNC);
++			#endif
+ 			g_source_attach (idle_source, data->callback_context);
+ 		}
+ 	}
+diff --git a/lib/gs-plugin-loader.c b/lib/gs-plugin-loader.c
+index 93b33f3..204d55f 100644
+--- a/lib/gs-plugin-loader.c
++++ b/lib/gs-plugin-loader.c
+@@ -1965,7 +1965,7 @@ get_session_bus_cb (GObject      *object,
+ 	plugin_loader->session_bus_connection = g_bus_get_finish (result, &local_error);
+ 	if (plugin_loader->session_bus_connection == NULL) {
+ 		notify_setup_complete (plugin_loader);
+-		g_prefix_error_literal (&local_error, "Error getting session bus: ");
++		g_prefix_error (&local_error, "%s", "Error getting session bus: ");
+ 		g_task_return_error (task, g_steal_pointer (&local_error));
+ 		return;
+ 	}
+@@ -1987,7 +1987,7 @@ get_system_bus_cb (GObject      *object,
+ 	plugin_loader->system_bus_connection = g_bus_get_finish (result, &local_error);
+ 	if (plugin_loader->system_bus_connection == NULL) {
+ 		notify_setup_complete (plugin_loader);
+-		g_prefix_error_literal (&local_error, "Error getting system bus: ");
++		g_prefix_error (&local_error, "%s", "Error getting system bus: ");
+ 		g_task_return_error (task, g_steal_pointer (&local_error));
+ 		return;
+ 	}
+@@ -2753,12 +2753,21 @@ gs_plugin_loader_init (GsPluginLoader *plugin_loader)
+ 	/* Set up a thread pool for running old-style jobs
+ 	 * FIXME: This will eventually disappear when all jobs are ported to
+ 	 * be subclasses of #GsPluginJob. */
++	#if GLIB_CHECK_VERSION(2, 70, 0)
+ 	plugin_loader->old_api_thread_pool = g_thread_pool_new_full (gs_plugin_loader_process_old_api_job_cb,
+ 								     plugin_loader,
+ 								     (GDestroyNotify) g_object_unref,
+ 								     20,
+ 								     FALSE,
+ 								     NULL);
++	#else
++	/* pre-glib 2.70.0 - The items will leak when the thread pool is freed before all jobs are finished */
++	plugin_loader->old_api_thread_pool = g_thread_pool_new (gs_plugin_loader_process_old_api_job_cb,
++								plugin_loader,
++								20,
++								FALSE,
++								NULL);
++	#endif
+ 
+ 	/* get the job manager */
+ 	plugin_loader->job_manager = gs_job_manager_new ();
+diff --git a/meson.build b/meson.build
+index da9e7ac..4c847c9 100644
+--- a/meson.build
++++ b/meson.build
+@@ -156,7 +156,7 @@ gtk = dependency('gtk4',
+       'demos=false',
+     ]
+   )
+-glib = dependency('glib-2.0', version : '>= 2.70.0')
++glib = dependency('glib-2.0', version : '>= 2.68.0')
+ json_glib = dependency('json-glib-1.0', version : '>= 1.6.0')
+ libm = cc.find_library('m', required: false)
+ if get_option('soup2')
+diff --git a/plugins/flatpak/gs-flatpak.c b/plugins/flatpak/gs-flatpak.c
+index c84db84..009a425 100644
+--- a/plugins/flatpak/gs-flatpak.c
++++ b/plugins/flatpak/gs-flatpak.c
+@@ -4738,7 +4738,7 @@ gs_flatpak_purge_sync (GsFlatpak    *self,
+ 		g_autoptr(FlatpakTransaction) transaction = NULL;
+ 		transaction = gs_flatpak_transaction_new (installation, GS_FLATPAK_ERROR_MODE_STOP_ON_FIRST_ERROR, cancellable, error);
+ 		if (transaction == NULL) {
+-			g_prefix_error_literal (error, "failed to build transaction: ");
++			g_prefix_error (error, "%s", "failed to build transaction: ");
+ 			return FALSE;
+ 		}
+ 		flatpak_transaction_set_no_interaction (transaction, TRUE);
+diff --git a/plugins/fwupd/gs-plugin-fwupd.c b/plugins/fwupd/gs-plugin-fwupd.c
+index e931b2b..43c4e9f 100644
+--- a/plugins/fwupd/gs-plugin-fwupd.c
++++ b/plugins/fwupd/gs-plugin-fwupd.c
+@@ -1653,7 +1653,7 @@ finish_update_apps_op (GTask  *task,
+ 		g_autoptr(GsPluginEvent) event = NULL;
+ 
+ 		event_error = g_error_copy (error_owned);
+-		g_prefix_error_literal (&event_error, _("Firmware update could not be applied: "));
++		g_prefix_error (&event_error, "%s", _("Firmware update could not be applied: "));
+ 		gs_plugin_fwupd_error_convert (&event_error);
+ 
+ 		event = gs_plugin_event_new ("app", self->app_current,
+diff --git a/plugins/packagekit/gs-plugin-packagekit.c b/plugins/packagekit/gs-plugin-packagekit.c
+index 3c5f926..409e831 100644
+--- a/plugins/packagekit/gs-plugin-packagekit.c
++++ b/plugins/packagekit/gs-plugin-packagekit.c
+@@ -2040,7 +2040,7 @@ search_files_cb (GObject      *source_object,
+ 	results = pk_client_generic_finish (client, result, &local_error);
+ 
+ 	if (!gs_plugin_packagekit_results_valid (results, g_task_get_cancellable (refine_task), &local_error)) {
+-		g_prefix_error_literal (&local_error, "failed to search files: ");
++		g_prefix_error (&local_error, "%s", "failed to search files: ");
+ 		refine_task_complete_operation_with_error (refine_task, g_steal_pointer (&local_error));
+ 		return;
+ 	}
+@@ -3071,7 +3071,7 @@ gs_plugin_packagekit_convert_error (GError **error,
+ 		break;
+ 	}
+ 	if (prefix != NULL)
+-		g_prefix_error_literal (error, prefix);
++		g_prefix_error (error, "%s", prefix);
+ 	return FALSE;
+ }
+ 
+diff --git a/src/gs-common.c b/src/gs-common.c
+index 997025a..d665c98 100644
+--- a/src/gs-common.c
++++ b/src/gs-common.c
+@@ -1027,7 +1027,7 @@ gs_utils_invoke_reboot_ready2_got_session_bus_cb (GObject *source_object,
+ 	bus = g_bus_get_finish (result, &local_error);
+ 	if (bus == NULL) {
+ 		g_dbus_error_strip_remote_error (local_error);
+-		g_prefix_error_literal (&local_error, "Failed to get D-Bus session bus: ");
++		g_prefix_error (&local_error, "%s", "Failed to get D-Bus session bus: ");
+ 		g_task_return_error (task, g_steal_pointer (&local_error));
+ 		return;
+ 	}
+@@ -1098,7 +1098,7 @@ gs_utils_invoke_reboot_ready1_got_system_bus_cb (GObject *source_object,
+ 	bus = g_bus_get_finish (result, &local_error);
+ 	if (bus == NULL) {
+ 		g_dbus_error_strip_remote_error (local_error);
+-		g_prefix_error_literal (&local_error, "Failed to get D-Bus system bus: ");
++		g_prefix_error (&local_error, "%s", "Failed to get D-Bus system bus: ");
+ 		g_task_return_error (task, g_steal_pointer (&local_error));
+ 		return;
+ 	}
+@@ -1171,7 +1171,7 @@ gs_utils_invoke_reboot_got_session_bus_cb (GObject *source_object,
+ 	bus = g_bus_get_finish (result, &local_error);
+ 	if (bus == NULL) {
+ 		g_dbus_error_strip_remote_error (local_error);
+-		g_prefix_error_literal (&local_error, "Failed to get D-Bus session bus: ");
++		g_prefix_error (&local_error, "%s", "Failed to get D-Bus session bus: ");
+ 		g_task_return_error (task, g_steal_pointer (&local_error));
+ 		return;
+ 	}

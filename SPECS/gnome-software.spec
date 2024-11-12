@@ -1,61 +1,80 @@
 %global appstream_version 0.14.0
+%global flatpak_version 1.9.1
+%global fwupd_version 1.5.6
+%global glib2_version 2.68.0
+%global gtk4_version 4.10.0
+%global json_glib_version 1.6.0
+%global libadwaita_version 1.3.alpha
 %global libxmlb_version 0.1.7
-%global glib2_version 2.61.1
-%global gtk3_version 3.22.4
-%global json_glib_version 1.2.0
-%global libsoup_version 2.52.0
-%global packagekit_version 1.1.1
-%global fwupd_version 1.3.3
-%global flatpak_version 1.5.1
+%global packagekit_version 1.2.5
+
+# Disable WebApps for RHEL builds
+%bcond webapps %[!0%{?rhel}]
+# Disable parental control for RHEL builds
+%bcond malcontent %[!0%{?rhel}]
+# Disable rpm-ostree support for RHEL builds
+%bcond rpmostree %[!0%{?rhel}]
+
+# this is not a library version
+%define gs_plugin_version 20
 
 %global tarball_version %%(echo %{version} | tr '~' '.')
 
+%global __provides_exclude_from ^%{_libdir}/%{name}/plugins-%{gs_plugin_version}/.*\\.so.*$
+
 Name:      gnome-software
-Version:   41.5
+Version:   45.3
 Release:   3%{?dist}
 Summary:   A software center for GNOME
 
-License:   GPLv2+
+License:   GPL-2.0-or-later
 URL:       https://wiki.gnome.org/Apps/Software
-Source0:   https://download.gnome.org/sources/gnome-software/41/%{name}-%{tarball_version}.tar.xz
+Source0:   https://download.gnome.org/sources/gnome-software/45/%{name}-%{tarball_version}.tar.xz
 
-Patch01:   0001-crash-with-broken-theme.patch
-Patch02:   0006-optional-repos-cannot-be-disabled.patch
-Patch03:   0007-compulsory-only-for-repos.patch
-Patch04:   0008-gs-removal-dialog-crrect-property-name.patch
-Patch05:   0009-hide-some-errors.patch
+Patch01:   0001-Lower_glib_dependency_to_2_68.patch
+Patch02:   0002-Lower-pango-attributes.patch
+Patch03:   0003-Verify-category-sizes.patch
+Patch04:   0004-prefer-vendor-name.patch
 
-BuildRequires: appstream-devel >= %{appstream_version}
-BuildRequires: gcc
-BuildRequires: gettext
-BuildRequires: libxslt
 BuildRequires: docbook-style-xsl
 BuildRequires: desktop-file-utils
-BuildRequires: fwupd-devel >= %{fwupd_version}
-BuildRequires: glib2-devel >= %{glib2_version}
-BuildRequires: gnome-online-accounts-devel
-BuildRequires: gsettings-desktop-schemas-devel
-BuildRequires: gspell-devel
-BuildRequires: gtk3-devel >= %{gtk3_version}
+BuildRequires: gcc
+BuildRequires: gettext
 BuildRequires: gtk-doc
-BuildRequires: json-glib-devel >= %{json_glib_version}
-BuildRequires: libdnf-devel
-BuildRequires: libhandy1-devel
-BuildRequires: libsoup-devel
-BuildRequires: libxmlb-devel >= %{libxmlb_version}
+BuildRequires: libxslt
 BuildRequires: meson
-BuildRequires: PackageKit-glib-devel >= %{packagekit_version}
-BuildRequires: polkit-devel
-BuildRequires: flatpak-devel >= %{flatpak_version}
-BuildRequires: ostree-devel
-BuildRequires: rpm-devel
-BuildRequires: rpm-ostree-devel
-BuildRequires: libgudev1-devel
-BuildRequires: sysprof-capture-devel
-BuildRequires: valgrind-devel
+BuildRequires: pkgconfig(appstream) >= %{appstream_version}
+BuildRequires: pkgconfig(flatpak) >= %{flatpak_version}
+BuildRequires: pkgconfig(fwupd) >= %{fwupd_version}
+BuildRequires: pkgconfig(gdk-pixbuf-2.0)
+BuildRequires: pkgconfig(gio-unix-2.0) >= %{glib2_version}
+BuildRequires: pkgconfig(glib-2.0) >= %{glib2_version}
+BuildRequires: pkgconfig(gmodule-2.0) >= %{glib2_version}
+BuildRequires: pkgconfig(gsettings-desktop-schemas)
+BuildRequires: pkgconfig(gtk4) >= %{gtk4_version}
+BuildRequires: pkgconfig(gudev-1.0)
+BuildRequires: pkgconfig(json-glib-1.0) >= %{json_glib_version}
+BuildRequires: pkgconfig(libadwaita-1) >= %{libadwaita_version}
+BuildRequires: pkgconfig(libdnf)
+BuildRequires: pkgconfig(libsoup-2.4)
+%if %{with malcontent}
+BuildRequires: pkgconfig(malcontent-0)
+%endif
+BuildRequires: pkgconfig(ostree-1)
+BuildRequires: pkgconfig(packagekit-glib2) >= %{packagekit_version}
+BuildRequires: pkgconfig(polkit-gobject-1)
+BuildRequires: pkgconfig(rpm)
+%if %{with rpmostree}
+BuildRequires: pkgconfig(rpm-ostree-1)
+%endif
+#BuildRequires: pkgconfig(sysprof-capture-4)
+BuildRequires: pkgconfig(xmlb) >= %{libxmlb_version}
 
 Requires: appstream-data
 Requires: appstream%{?_isa} >= %{appstream_version}
+%if %{with webapps}
+Requires: epiphany-runtime%{?_isa}
+%endif
 Requires: flatpak%{?_isa} >= %{flatpak_version}
 Requires: flatpak-libs%{?_isa} >= %{flatpak_version}
 Requires: fwupd%{?_isa} >= %{fwupd_version}
@@ -63,21 +82,16 @@ Requires: glib2%{?_isa} >= %{glib2_version}
 # gnome-menus is needed for app folder .directory entries
 Requires: gnome-menus%{?_isa}
 Requires: gsettings-desktop-schemas%{?_isa}
-Requires: gtk3%{?_isa} >= %{gtk3_version}
 Requires: json-glib%{?_isa} >= %{json_glib_version}
 Requires: iso-codes
 # librsvg2 is needed for gdk-pixbuf svg loader
 Requires: librsvg2%{?_isa}
-Requires: libsoup%{?_isa} >= %{libsoup_version}
 Requires: libxmlb%{?_isa} >= %{libxmlb_version}
 
 Recommends: PackageKit%{?_isa} >= %{packagekit_version}
 
 Obsoletes: gnome-software-snap < 3.33.1
 Obsoletes: gnome-software-editor < 3.35.1
-
-# this is not a library version
-%define gs_plugin_version               16
 
 %description
 gnome-software is an application that makes it easy to add, remove
@@ -91,6 +105,7 @@ Requires: %{name}%{?_isa} = %{version}-%{release}
 These development files are for building gnome-software plugins outside
 the source tree. Most users do not need this subpackage installed.
 
+%if %{with rpmostree}
 %package rpm-ostree
 Summary: rpm-ostree backend for gnome-software
 Requires: %{name}%{?_isa} = %{version}-%{release}
@@ -102,18 +117,38 @@ gnome-software is an application that makes it easy to add, remove
 and update software in the GNOME desktop.
 
 This package includes the rpm-ostree backend.
+%endif
 
 %prep
-%autosetup -p1 -n %{name}-%{tarball_version} -S gendiff
+%autosetup -p1 -S gendiff -n %{name}-%{tarball_version}
 
 %build
 %meson \
+    -Dsoup2=true \
     -Dsnap=false \
+%if %{with malcontent}
+    -Dmalcontent=true \
+%else
     -Dmalcontent=false \
+%endif
     -Dgudev=true \
     -Dpackagekit=true \
+    -Dpackagekit_autoremove=true \
     -Dexternal_appstream=false \
+%if %{with rpmostree}
     -Drpm_ostree=true \
+%else
+    -Drpm_ostree=false \
+%endif
+%if %{with webapps}
+    -Dwebapps=true \
+    -Dhardcoded_foss_webapps=true \
+    -Dhardcoded_proprietary_webapps=false \
+%else
+    -Dwebapps=false \
+    -Dhardcoded_foss_webapps=false \
+    -Dhardcoded_proprietary_webapps=false \
+%endif
     -Dtests=false
 %meson_build
 
@@ -135,6 +170,7 @@ official-repos = [ 'rhel-%{?rhel}' ]
 %else
 official-repos = [ 'anaconda', 'fedora', 'fedora-debuginfo', 'fedora-source', 'koji-override-0', 'koji-override-1', 'rawhide', 'rawhide-debuginfo', 'rawhide-source', 'updates', 'updates-debuginfo', 'updates-source', 'updates-testing', 'updates-testing-debuginfo', 'updates-testing-source', 'fedora-modular', 'fedora-modular-debuginfo', 'fedora-modular-source', 'rawhide-modular', 'rawhide-modular-debuginfo', 'rawhide-modular-source', 'fedora-cisco-openh264', 'fedora-cisco-openh264-debuginfo' ]
 required-repos = [ 'fedora', 'updates' ]
+packaging-format-preference = [ 'flatpak:fedora-testing', 'flatpak:fedora', 'rpm' ]
 %endif
 FOE
 
@@ -147,44 +183,51 @@ desktop-file-validate %{buildroot}%{_datadir}/applications/*.desktop
 %doc AUTHORS README.md
 %license COPYING
 %{_bindir}/gnome-software
-%{_datadir}/applications/gnome-software-local-file.desktop
+%{_datadir}/applications/gnome-software-local-file-flatpak.desktop
+%{_datadir}/applications/gnome-software-local-file-fwupd.desktop
+%{_datadir}/applications/gnome-software-local-file-packagekit.desktop
 %{_datadir}/applications/org.gnome.Software.desktop
-%dir %{_datadir}/gnome-software
-%{_datadir}/gnome-software/*.png
-%{_mandir}/man1/gnome-software.1.gz
+%{_mandir}/man1/gnome-software.1*
 %{_datadir}/icons/hicolor/*/apps/org.gnome.Software.svg
 %{_datadir}/icons/hicolor/symbolic/apps/org.gnome.Software-symbolic.svg
 %{_datadir}/icons/hicolor/scalable/actions/app-remove-symbolic.svg
-%{_datadir}/icons/hicolor/scalable/actions/carousel-arrow-next-symbolic.svg
-%{_datadir}/icons/hicolor/scalable/actions/carousel-arrow-previous-symbolic.svg
-%{_datadir}/icons/hicolor/scalable/status/software-installed-symbolic.svg
-%{_datadir}/metainfo/org.gnome.Software.appdata.xml
+%{_datadir}/metainfo/org.gnome.Software.metainfo.xml
+%if %{with webapps}
+%{_datadir}/metainfo/org.gnome.Software.Plugin.Epiphany.metainfo.xml
+%endif
 %{_datadir}/metainfo/org.gnome.Software.Plugin.Flatpak.metainfo.xml
 %{_datadir}/metainfo/org.gnome.Software.Plugin.Fwupd.metainfo.xml
 %dir %{_libdir}/gnome-software/plugins-%{gs_plugin_version}
 %{_libdir}/gnome-software/libgnomesoftware.so.%{gs_plugin_version}
 %{_libdir}/gnome-software/plugins-%{gs_plugin_version}/libgs_plugin_appstream.so
 %{_libdir}/gnome-software/plugins-%{gs_plugin_version}/libgs_plugin_dummy.so
+%if %{with webapps}
+%{_libdir}/gnome-software/plugins-%{gs_plugin_version}/libgs_plugin_epiphany.so
+%endif
 %{_libdir}/gnome-software/plugins-%{gs_plugin_version}/libgs_plugin_fedora-langpacks.so
 %{_libdir}/gnome-software/plugins-%{gs_plugin_version}/libgs_plugin_fedora-pkgdb-collections.so
 %{_libdir}/gnome-software/plugins-%{gs_plugin_version}/libgs_plugin_flatpak.so
 %{_libdir}/gnome-software/plugins-%{gs_plugin_version}/libgs_plugin_fwupd.so
 %{_libdir}/gnome-software/plugins-%{gs_plugin_version}/libgs_plugin_generic-updates.so
 %{_libdir}/gnome-software/plugins-%{gs_plugin_version}/libgs_plugin_hardcoded-blocklist.so
-%{_libdir}/gnome-software/plugins-%{gs_plugin_version}/libgs_plugin_hardcoded-popular.so
 %{_libdir}/gnome-software/plugins-%{gs_plugin_version}/libgs_plugin_icons.so
+%if %{with malcontent}
+%{_libdir}/gnome-software/plugins-%{gs_plugin_version}/libgs_plugin_malcontent.so
+%endif
 %{_libdir}/gnome-software/plugins-%{gs_plugin_version}/libgs_plugin_modalias.so
 %{_libdir}/gnome-software/plugins-%{gs_plugin_version}/libgs_plugin_os-release.so
-%{_libdir}/gnome-software/plugins-%{gs_plugin_version}/libgs_plugin_packagekit-refine-repos.so
-%{_libdir}/gnome-software/plugins-%{gs_plugin_version}/libgs_plugin_packagekit-refresh.so
 %{_libdir}/gnome-software/plugins-%{gs_plugin_version}/libgs_plugin_packagekit.so
 %{_libdir}/gnome-software/plugins-%{gs_plugin_version}/libgs_plugin_provenance-license.so
 %{_libdir}/gnome-software/plugins-%{gs_plugin_version}/libgs_plugin_provenance.so
 %{_libdir}/gnome-software/plugins-%{gs_plugin_version}/libgs_plugin_repos.so
-%{_libdir}/gnome-software/plugins-%{gs_plugin_version}/libgs_plugin_rewrite-resource.so
-%{_libdir}/gnome-software/plugins-%{gs_plugin_version}/libgs_plugin_systemd-updates.so
-%{_sysconfdir}/xdg/autostart/gnome-software-service.desktop
-%{_datadir}/app-info/xmls/org.gnome.Software.Featured.xml
+%{_sysconfdir}/xdg/autostart/org.gnome.Software.desktop
+%dir %{_datadir}/swcatalog
+%dir %{_datadir}/swcatalog/xml
+%if %{with webapps}
+%{_datadir}/swcatalog/xml/gnome-pwa-list-foss.xml
+%endif
+%{_datadir}/swcatalog/xml/org.gnome.Software.Curated.xml
+%{_datadir}/swcatalog/xml/org.gnome.Software.Featured.xml
 %{_datadir}/dbus-1/services/org.freedesktop.PackageKit.service
 %{_datadir}/dbus-1/services/org.gnome.Software.service
 %{_datadir}/gnome-shell/search-providers/org.gnome.Software-search-provider.ini
@@ -193,17 +236,27 @@ desktop-file-validate %{buildroot}%{_datadir}/applications/*.desktop
 %{_libexecdir}/gnome-software-cmd
 %{_libexecdir}/gnome-software-restarter
 
+%if %{with rpmostree}
 %files rpm-ostree
 %{_libdir}/gnome-software/plugins-%{gs_plugin_version}/libgs_plugin_rpm-ostree.so
+%endif
 
 %files devel
 %{_libdir}/pkgconfig/gnome-software.pc
 %dir %{_includedir}/gnome-software
 %{_includedir}/gnome-software/*.h
 %{_libdir}/gnome-software/libgnomesoftware.so
-%{_datadir}/gtk-doc/html/gnome-software
+%dir %{_datadir}/gtk-doc
+%dir %{_datadir}/gtk-doc/html
+%{_datadir}/gtk-doc/html/gnome-software/
 
 %changelog
+* Mon May 27 2024 Milan Crha <mcrha@redhat.com> - 45.3-3
+- Resolves: RHEL-22268 (Prefer VENDOR_NAME in app origin)
+
+* Mon May 06 2024 Milan Crha <mcrha@redhat.com> - 45.3-2
+- Resolves: RHEL-843 (Rebase GNOME Software to its GNOME 45 version)
+
 * Thu Aug 03 2023 Milan Crha <mcrha@redhat.com> - 41.5-3
 - Resolves: #2228374 (Rebuild to move gnome-software-devel into CRB)
 

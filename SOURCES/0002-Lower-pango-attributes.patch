@@ -1,0 +1,42 @@
+diff -up gnome-software-45.2/src/gs-origin-popover-row.ui.2 gnome-software-45.2/src/gs-origin-popover-row.ui
+--- gnome-software-45.2/src/gs-origin-popover-row.ui.2	2023-12-08 10:14:07.848934874 +0100
++++ gnome-software-45.2/src/gs-origin-popover-row.ui	2023-12-08 10:14:10.045961688 +0100
+@@ -79,7 +79,7 @@
+                         <property name="margin-end">2</property>
+                         <attributes>
+                           <attribute name="weight" value="bold"/>
+-                          <attribute name="variant" value="all-small-caps"/>
++                          <!--<attribute name="variant" value="all-small-caps"/>-->
+                         </attributes>
+                       </object>
+                     </child>
+@@ -110,7 +110,7 @@
+                         <property name="margin-end">2</property>
+                         <attributes>
+                           <attribute name="weight" value="bold"/>
+-                          <attribute name="variant" value="all-small-caps"/>
++                          <!--<attribute name="variant" value="all-small-caps"/>-->
+                         </attributes>
+                       </object>
+                     </child>
+@@ -140,7 +140,7 @@
+                         <property name="margin-end">2</property>
+                         <attributes>
+                           <attribute name="weight" value="bold"/>
+-                          <attribute name="variant" value="all-small-caps"/>
++                          <!--<attribute name="variant" value="all-small-caps"/>-->
+                         </attributes>
+                       </object>
+                     </child>
+diff -up gnome-software-45.2/src/gs-review-histogram.ui.2 gnome-software-45.2/src/gs-review-histogram.ui
+--- gnome-software-45.2/src/gs-review-histogram.ui.2	2023-12-08 10:15:28.246916110 +0100
++++ gnome-software-45.2/src/gs-review-histogram.ui	2023-12-01 09:58:33.000000000 +0100
+@@ -18,7 +18,7 @@
+             <attributes>
+               <attribute name="scale" value="5.0"/>
+               <attribute name="weight" value="light"/>
+-              <attribute name="line-height" value="0.75"/>
++              <!--<attribute name="line-height" value="0.75"/>-->
+             </attributes>
+             <layout>
+               <property name="column">0</property>
