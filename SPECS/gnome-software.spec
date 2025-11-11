@@ -25,7 +25,7 @@
 %global __provides_exclude_from ^%{_libdir}/%{name}/plugins-%{gs_plugin_version}/.*\\.so.*$
 
 Name:      gnome-software
-Version:   47.4
+Version:   47.5
 Release:   1%{?dist}
 Summary:   A software center for GNOME
 
@@ -302,6 +302,9 @@ desktop-file-validate %{buildroot}%{_datadir}/applications/*.desktop
 %{_datadir}/gtk-doc/html/gnome-software/
 
 %changelog
+* Mon Mar 24 2025 Milan Crha <mcrha@redhat.com> - 47.5-1
+- Resolves: RHEL-84652 (Update to 47.5)
+
 * Wed Jan 15 2025 Milan Crha <mcrha@redhat.com> - 47.4-1
 - Resolves: RHEL-73685 (Update to 47.4)
 
