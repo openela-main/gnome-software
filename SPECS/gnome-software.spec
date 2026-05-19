@@ -26,7 +26,7 @@
 
 Name:      gnome-software
 Version:   47.5
-Release:   1%{?dist}
+Release:   2%{?dist}
 Summary:   A software center for GNOME
 
 License:   GPL-2.0-or-later
@@ -36,6 +36,7 @@ Source1:   org.gnome.App-list-1.0.xml
 
 Patch:     0001-Disable-build-and-use-of-help-files.patch
 Patch:     0001-crash-under-gs_appstream_gather_merge_data.patch
+Patch:     0003-carousel-animation.patch
 
 # ostree and flatpak not on i686 for Fedora and RHEL 10
 # https://github.com/containers/composefs/pull/229#issuecomment-1838735764
@@ -302,6 +303,9 @@ desktop-file-validate %{buildroot}%{_datadir}/applications/*.desktop
 %{_datadir}/gtk-doc/html/gnome-software/
 
 %changelog
+* Mon Nov 03 2025 Milan Crha <mcrha@redhat.com> - 47.5-2
+- Resolves: RHEL-123944 (Carousel does not respect the "enable-animations" a11y setting)
+
 * Mon Mar 24 2025 Milan Crha <mcrha@redhat.com> - 47.5-1
 - Resolves: RHEL-84652 (Update to 47.5)
 
